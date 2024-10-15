@@ -1,0 +1,92 @@
+
+
+Sub HDN_Opsomming()
+
+'Create variables
+Dim wb As Workbook
+Dim ws As Worksheet
+Dim newWs As Worksheet
+Dim i As Integer
+Dim threadedComment As CommentThreaded
+Dim hyperlinkAddress As String
+Dim definedName As String
+Dim wsName As String
+
+'Set variables
+Set wb = ActiveWorkbook
+Set newWs = wb.Worksheets.Add
+newWs.Name = "Review notes"
+
+'Insert header row into Threaded Comments Worksheet and set header formatting
+With newWs
+    .Cells(1, 1).Value = "Sheet"
+    .Cells(1, 2).Value = "Cell Ref"
+    .Cells(1, 3).Value = "Comment"
+    .Cells(1, 4).Value = "Hyperlink"
+    .Cells(1, 5).Value = "Opgevolgd?"
+
+    'Set header row font to bold and font type to Arial
+    With .Range("A1:E1").Font
+        .Bold = True
+        .Name = "Arial"
+    End With
+
+    'Set header row background color
+    .Range("A1:E1").Interior.Color = RGB(245, 228, 9)
+
+    'Set wrap text for the comment column
+    .Columns(3).WrapText = True
+End With
+
+'Initialize counter
+i = 1
+
+'Loop through each worksheet
+For Each ws In wb.Worksheets
+
+    'Check if worksheet name contains spaces and add single quotes
+    wsName = ws.Name
+    If InStr(wsName, " ") > 0 Then
+        wsName = "'" & wsName & "'"
+    End If
+
+    'Loop through each threaded comment in the worksheet
+    For Each threadedComment In ws.CommentsThreaded
+
+        'Increment counter
+        i = i + 1
+
+        'Define a unique name for the cell with the threaded comment
+        definedName = "CommentRef_" & Replace(ws.Name, " ", "_") & "_"
+& Replace(threadedComment.Parent.Address, "$", "")
+
+        'Create the hyperlink address using the defined name
+        hyperlinkAddress = "#" & wsName & "!" & threadedComment.Parent.Address
+
+        'Add the defined name with the correct worksheet reference
+        wb.Names.Add Name:=definedName, RefersTo:=wsName & "!" &
+threadedComment.Parent.Address
+
+        'List threaded comments in the Threaded Comments Worksheet
+        With newWs
+            .Cells(i, 1).Value = ws.Name
+            .Cells(i, 2).Value = threadedComment.Parent.Address
+            .Cells(i, 3).Value = threadedComment.text
+
+            'Set comment row background color
+            .Range(.Cells(i, 1), .Cells(i, 5)).Interior.Color =RGB(242, 242, 242)
+
+            'Add a permanent hyperlink to the cell with the threaded comment
+            .Hyperlinks.Add Anchor:=.Cells(i, 4), _
+                Address:=hyperlinkAddress, _
+                TextToDisplay:="Go to Comment"
+        End With
+
+    Next threadedComment
+
+Next ws
+
+'AutoFit columns to content
+newWs.Columns("A:E").AutoFit
+
+End Sub
